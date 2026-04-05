@@ -1,4 +1,4 @@
-from flask import Flask, render_template, request
+from flask import Flask, render_template, request,make_response
 import pandas as pd
 import os
 from werkzeug.utils import secure_filename
@@ -18,6 +18,8 @@ import plotly.express as px
 from sklearn.metrics import confusion_matrix, roc_curve, auc
 import numpy as np
 from flask import send_file
+import pdfkit
+import plotly.io as pio
 
 app = Flask(__name__)
 
@@ -84,6 +86,7 @@ def generate_graphs(df):
     plt.figure(figsize=(8,6))
     sns.heatmap(df.corr(numeric_only=True), cmap="coolwarm")
     heatmap_path = "static/heatmap.png"
+    plt.title("Heat Map")
     plt.savefig(heatmap_path)
     plt.close()
     graphs.append(heatmap_path)
@@ -102,14 +105,14 @@ def generate_graphs(df):
         graphs.append(plot_path)
 
     # Missing value plot
-    plt.figure(figsize=(8,5))
-    df.isnull().sum().plot(kind='bar')
-    plt.title("Missing Values")
-    missing_path = "static/missing.png"
-    plt.savefig(missing_path)
-    plt.close()
+    # plt.figure(figsize=(8,5))
+    # df.isnull().sum().plot(kind='bar')
+    # plt.title("Missing Values")
+    # missing_path = "static/missing.png"
+    # plt.savefig(missing_path)
+    # plt.close()
 
-    graphs.append(missing_path)
+    # graphs.append(missing_path)
 
     return graphs
 
@@ -167,7 +170,7 @@ def upload():
 
     return render_template(
         "eda.html",
-        tables=[df.head().to_html(classes="table-auto w-full border border-gray-300 text-sm", border=0)],
+        tables=[df.head().to_html(classes="table-auto w-full border border-gray-300 text-sm text-black-500", border=0)],
         summary=summary,
         graphs=graphs
     )
@@ -176,7 +179,14 @@ def upload():
 # ===============================
 # MODEL TRAINING
 # ===============================
-
+summary = None
+global_results = None
+global_best_model = None
+global_cm = None
+global_roc = None
+global_residual = None
+importance_path = None
+global_chart_path=None
 @app.route("/train", methods=["POST"])
 def train():
 
@@ -191,11 +201,11 @@ def train():
         return "Invalid target column"
 
     df_clean = clean_data(df.copy())
-
     X = df_clean.drop(target, axis=1)
     y = df_clean[target]
 
     X = pd.get_dummies(X, drop_first=True)
+    columns = df_clean.columns.tolist()
 
     if y.dtype == "object":
         y = y.astype("category").cat.codes
@@ -203,7 +213,7 @@ def train():
     X = X.select_dtypes(include=["number"])
 
     X_train, X_test, y_train, y_test = train_test_split(
-        X, y, test_size=0.2, random_state=42
+        X, y, test_size=0.2, random_state=42,stratify=y   
     )
 
     # ===============================
@@ -287,19 +297,34 @@ def train():
         plt.close()
 
         # ROC CURVE (ONLY BINARY)
-        if len(np.unique(y_test)) == 2 and hasattr(best_model, "predict_proba"):
+        from sklearn.preprocessing import label_binarize
 
-            probs = best_model.predict_proba(X_test)[:, 1]
+        classes = np.unique(y_test)
 
-            fpr, tpr, _ = roc_curve(y_test, probs)
-            roc_auc = auc(fpr, tpr)
+        if hasattr(best_model, "predict_proba") and len(classes) > 1:
+
+            probs = best_model.predict_proba(X_test)
 
             plt.figure()
-            plt.plot(fpr, tpr, label=f"AUC = {roc_auc:.2f}")
-            plt.plot([0, 1], [0, 1], '--')
 
-            plt.xlabel("False Positive Rate")
-            plt.ylabel("True Positive Rate")
+            # 🔥 CASE 1: BINARY (SPECIAL FIX)
+            if len(classes) == 2:
+
+                fpr, tpr, _ = roc_curve(y_test, probs[:, 1])
+                plt.plot(fpr, tpr, label="ROC Curve")
+
+            # 🔥 CASE 2: MULTICLASS
+            else:
+
+                y_test_bin = label_binarize(y_test, classes=classes)
+
+                for i in range(len(classes)):
+                    fpr, tpr, _ = roc_curve(y_test_bin[:, i], probs[:, i])
+                    plt.plot(fpr, tpr, label=f"Class {classes[i]}")
+
+            plt.plot([0, 1], [0, 1], '--')
+            plt.xlabel("FPR")
+            plt.ylabel("TPR")
             plt.title("ROC Curve")
             plt.legend()
 
@@ -307,6 +332,8 @@ def train():
             plt.savefig(roc_path)
             plt.close()
 
+        else:
+            print("Skipping ROC: invalid condition")
     else:
 
         # RESIDUAL PLOT
@@ -329,7 +356,7 @@ def train():
     # FEATURE IMPORTANCE
     # ===============================
 
-    importance_path = None
+    importance_path=None
 
     if hasattr(best_model, "feature_importances_"):
 
@@ -377,12 +404,25 @@ def train():
 
     fig.update_traces(textposition='outside')
 
-    chart_path = "static/model_comparison.html"
-    fig.write_html(chart_path)
 
+    chart_path = "static/model_comparison.png"
+    pio.write_image(fig, chart_path)
     # ===============================
     # RETURN RESULTS
     # ===============================
+    global summary, global_results, global_best_model, global_cm, global_roc, global_residual,global_importance,global_chart_path
+
+
+    summary = generate_eda(df)
+    global_results = results
+    global_best_model = best_model_name
+    global_cm = cm_path
+    global_roc = roc_path
+    global_residual = residual_path
+    global_importance=importance_path
+    global_chart_path=chart_path
+
+    print("Importance path:", global_importance)
 
     return render_template(
         "results.html",
@@ -393,7 +433,8 @@ def train():
         cm=cm_path,
         roc=roc_path,
         residual=residual_path,
-        task=task
+        task=task,
+        columns=columns
     )
 
 @app.route("/download_model")
@@ -431,7 +472,12 @@ def predict_result():
 
     prediction = model.predict([input_data])[0]
 
-    return render_template("results.html", prediction=prediction)
+    return render_template(
+        "predict.html",
+        prediction=prediction,
+        show_prediction=True,
+        features=features
+    )
 
 @app.route("/explore")
 def explore():
@@ -455,11 +501,116 @@ def explore():
 
     return render_template(
         "explore.html",
-        tables=[filtered_df.head(50).to_html(classes="table-auto w-full overflow-x-auto border rounded-lg", border=0)],
+        tables=[filtered_df.head(50).to_html(classes="table-auto w-full bg-black-100 overflow-x-auto border rounded-lg text-black-500", border=0)],
         query=query
     )
 
 
+
+
+import os
+
+@app.route("/generate_report")
+def generate_report():
+
+    global summary, global_results, global_best_model
+    global global_cm, global_roc, global_residual,global_importance
+
+    if summary is None or global_results is None:
+        return "Please train model first"
+
+    insight = f"""
+    Best model is {global_best_model} with score {max(global_results.values())}.
+    """
+
+    # Convert to absolute paths (VERY IMPORTANT)
+    cm_path = os.path.abspath(global_cm) if global_cm else None
+    roc_path = os.path.abspath(global_roc) if global_roc else None
+    residual_path = os.path.abspath(global_residual) if global_residual else None
+    importance_path = os.path.abspath(global_importance) if global_importance else None
+    chart_path = os.path.abspath(global_chart_path) if global_chart_path else None
+
+    html = render_template(
+        "reports.html",
+        summary=summary,
+        results=global_results,
+        best_model=global_best_model,
+        insight=insight,
+        cm=cm_path,
+        roc=roc_path,
+        residual=residual_path,
+        importance=importance_path,
+        chart=chart_path,
+    )
+
+    config = pdfkit.configuration(
+        wkhtmltopdf=r"C:\Program Files\wkhtmltopdf\bin\wkhtmltopdf.exe"
+    )
+
+    pdf = pdfkit.from_string(
+        html,
+        False,
+        configuration=config,
+        options={"enable-local-file-access": ""}
+    )
+
+    response = make_response(pdf)
+    response.headers["Content-Type"] = "application/pdf"
+    response.headers["Content-Disposition"] = "attachment; filename=report.pdf"
+
+    return response
+
+@app.route("/generate_plot", methods=["POST"])
+def generate_plot():
+
+    global df
+
+    data = request.get_json()
+
+    graph = data.get("graph")
+    x = data.get("x")
+    y = data.get("y")
+
+    df_clean = clean_data(df.copy())
+
+    import plotly.express as px
+
+    try:
+        # ✅ Validate columns
+        if x not in df_clean.columns:
+            return "<p style='color:red'>Invalid X column</p>"
+
+        if graph != "histogram" and y not in df_clean.columns:
+            return "<p style='color:red'>Invalid Y column</p>"
+
+        # ✅ Generate plots
+        elif graph == "scatter":
+            fig = px.scatter(df_clean, x=x, y=y)
+
+        elif graph == "bar":
+            fig = px.bar(df_clean, x=x, y=y)
+
+        elif graph == "line":
+            fig = px.line(df_clean, x=x, y=y)
+
+        elif graph == "histogram":
+            fig = px.histogram(df_clean, x=x, nbins=30)
+
+        else:
+            return "<p style='color:red'>Invalid graph type</p>"
+
+        # ✅ Styling (match your dark UI 🔥)
+        fig.update_layout(
+            template="plotly_dark",
+            paper_bgcolor="rgba(0,0,0,0)",
+            plot_bgcolor="rgba(0,0,0,0)",
+            font=dict(color="white")
+        )
+
+        return fig.to_html(full_html=False)
+
+    except Exception as e:
+        return f"<p style='color:red'>Error: {str(e)}</p>"
 # ===============================
 # RUN APP
 # ===============================
