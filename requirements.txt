@@ -6,4 +6,5 @@ matplotlib
 seaborn==0.13.2
 plotly==5.22.0
 joblib
+pdfkit
 gunicorn
