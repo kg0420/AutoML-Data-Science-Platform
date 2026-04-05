@@ -1,196 +1,307 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
 
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-<title>Model Results</title>
+    <title>Model Results</title>
 
-<script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600&display=swap" rel="stylesheet">
 
-<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Poppins', sans-serif;
+        }
 
-<style>
+        /* Card animation */
 
-body{
-font-family:'Poppins',sans-serif;
-}
+        .card {
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
 
-/* Card animation */
+        .card:hover {
+            transform: translateY(-6px);
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.15);
+        }
+        .card {
+            background: rgba(255, 255, 255, 0.05);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            padding: 20px;
+            border-radius: 16px;
+            transition: 0.3s;
+        }
 
-.card{
-transition: transform 0.3s ease, box-shadow 0.3s ease;
-}
+        .card:hover {
+            transform: translateY(-6px);
+            box-shadow: 0 0 25px rgba(0, 255, 150, 0.2);
+        }
 
-.card:hover{
-transform: translateY(-6px);
-box-shadow:0 20px 40px rgba(0,0,0,0.15);
-}
+        button {
+            width: 100%;
+            padding: 12px;
+            border-radius: 10px;
+            transition: 0.3s;
+            font-weight: 600;
+        }
 
-</style>
+        .btn-blue {
+            background: #2563eb;
+        }
+
+        .btn-green {
+            background: #16a34a;
+        }
+
+        .btn-gray {
+            background: #374151;
+        }
+
+        button:hover {
+            transform: scale(1.05);
+            box-shadow: 0 0 20px rgba(255, 255, 255, 0.2);
+        }
+    </style>
 
 </head>
 
-<body class="bg-gradient-to-r from-blue-50 to-indigo-100">
-
-
-<!-- NAVBAR -->
-
-<nav class="bg-indigo-600 text-white p-4 shadow">
-
-<div class="container mx-auto flex justify-between">
-
-<h1 class="text-xl font-bold">
-🚀 Auto Data Science Platform
-</h1>
-
-<p class="text-sm">
-Model Training Results
-</p>
-
-</div>
-
-</nav>
-
-
-
-<div class="container mx-auto mt-10 px-6">
-
-<h2 class="text-3xl font-bold text-gray-800 mb-8">
-Model Leaderboard
-</h2>
-
-
-<!-- LEADERBOARD CARD -->
-
-<div class="card bg-white rounded-xl shadow p-6 mb-10">
-
-<table class="table-auto w-full">
-
-<thead>
-
-<tr class="border-b text-left text-gray-600">
-
-<th class="p-3">Model</th>
-<th class="p-3">Score</th>
-
-</tr>
-
-</thead>
-
-<tbody>
-
-{% for model,score in results.items() %}
-
-<tr class="border-b hover:bg-gray-50">
-
-<td class="p-3 font-medium">{{model}}</td>
-
-<td class="p-3 text-blue-600 font-semibold">
-{{score}}
-</td>
-
-</tr>
-
-{% endfor %}
-
-</tbody>
-
-</table>
-
-</div>
-
-<!-- MODEL COMPARISON CHART -->
-
-<div class="card bg-white p-6 rounded-xl shadow mb-10">
-
-<h3 class="text-xl font-semibold mb-4">
-📊 Model Comparison Chart
-</h3>
-
-<iframe 
-src="{{chart}}" 
-class="w-full h-[450px] rounded-lg border w-[500px]">
-</iframe>
-
-</div>
-
-<!-- BEST MODEL CARD -->
-
-<div class="card bg-green-100 border border-green-400 rounded-xl p-6 mb-10">
-
-<h3 class="text-xl font-semibold text-green-800">
-
-🏆 Best Model: {{best_model}}
-
-</h3>
-
-<p class="text-green-700 mt-2">
-This model achieved the highest performance on the test dataset.
-</p>
-
-</div>
-
-
-
-<!-- FEATURE IMPORTANCE -->
-
-{% if importance %}
-<h3 class="text-xl font-semibold mb-4">
-Feature Importance
-</h3>
-<div class="flex justify-center card bg-white p-6 rounded-xl shadow mb-10 lg:w-[900px] lg:h-[700px]">
-
-
-
-<img src="{{importance}}" class="rounded-lg w-full">
-
-</div>
-
-{% endif %}
-
-
-
-<!-- ACTION BUTTONS -->
-<div  class="grid justify-center grid-cols-1 lg:grid-cols-3">
-    <a href="/download_model">
-
-<button class="bg-blue-500 hover:bg-blue-600 text-white px-6 py-3 rounded-lg mt-[10px]">
-
-Download Trained Model
-
-</button>
-
-</a>
-
-
-<a href="/">
-
-<button class="bg-gray-700 hover:bg-gray-800 text-white px-6 py-3 rounded-lg mt-[10px]">
-
-Upload New Dataset
-
-</button>
-
-</a>
-
-<a href="/predict">
-<button class="bg-green-500 hover:bg-gray-800 text-white px-6 py-2 rounded-lg mt-[10px] ">
-Prediction Test
-</button>
-</a>
-</div>
-
-<!-- FOOTER -->
-
-<footer class="mt-16 bg-gray-900 text-white text-center p-4">
-
-<p>
-Built by Krish Gupta • AutoML Platform
-</p>
-
-</footer>
-
+<body class="bg-[#020617] text-white overflow-x-hidden">
+
+    <!-- 🌌 BACKGROUND -->
+    <div
+        class="fixed w-[400px] h-[400px] bg-green-400 opacity-20 blur-3xl rounded-full top-[-100px] left-[-100px] animate-pulse">
+    </div>
+    <div
+        class="fixed w-[400px] h-[400px] bg-purple-500 opacity-20 blur-3xl rounded-full bottom-[-100px] right-[-100px] animate-pulse">
+    </div>
+
+    <!-- NAVBAR -->
+    <nav class="bg-white/10 backdrop-blur-lg border-b border-white/20 p-4 shadow">
+        <div class="container mx-auto flex justify-between">
+            <h1 class="text-xl font-bold font-serif ml-[10px]">🚀 Auto Data Science Platform</h1>
+            <p class="text-sm text-gray-300">Model Training Results</p>
+        </div>
+    </nav>
+
+    <div class="container mx-auto mt-10 px-2">
+
+        <!-- TITLE -->
+        <h2
+            class="text-4xl font-bold mb-10 bg-gradient-to-r from-green-400 to-purple-500 text-transparent bg-clip-text font-serif">
+            Model Leaderboard
+        </h2>
+
+        <!-- LEADERBOARD -->
+        {% if results %}
+        <div class="card mb-10">
+
+            <table class="w-full text-left">
+
+                <thead>
+                    <tr class="border-b border-white/10 text-gray-400">
+                        <th class="p-3">Model</th>
+                        <th class="p-3">Score</th>
+                    </tr>
+                </thead>
+
+                <tbody>
+                    {% for model,score in results.items() %}
+                    <tr class="border-b border-white/5 hover:bg-white/5 transition">
+                        <td class="p-3 font-medium">{{model}}</td>
+                        <td class="p-3 text-green-400 font-semibold">
+                            {{score}}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+
+            </table>
+
+        </div>
+        {% endif %}
+
+        <!-- CHART -->
+        <div class="card mb-10">
+            <h3 class="text-xl mb-4">📊 Model Comparison</h3>
+
+            <iframe src="{{chart}}" class="w-full h-[450px] rounded-lg border border-white/10"></iframe>
+        </div>
+
+        <!-- BEST MODEL -->
+        <div class="card border border-green-400 mb-10">
+            <h3 class="text-xl text-green-400 font-bold">
+                🏆 Best Model: {{best_model}}
+            </h3>
+
+            <p class="text-gray-400 mt-2">
+                This model achieved the highest performance.
+            </p>
+        </div>
+
+        <!-- FEATURE IMPORTANCE -->
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
+            {% if importance %}
+            <div class="card mb-10">
+                <h3 class="text-xl mb-4">Feature Importance</h3>
+
+                <div class="flex justify-center md:w-[600px] md:h-[500px] overflow-x-auto">
+                    <img src="{{importance}}" class="rounded-lg w-full">
+                </div>
+            </div>
+            {% endif %}
+
+            {% if cm %}
+            <div class="card mb-10">
+                <h3 class="text-xl mb-4">Confusion Matrix</h3>
+
+                <div class="flex justify-center md:w-[500px] md:h-[500px] overflow-x-auto">
+                    <img src="{{cm}}" class="rounded-lg w-full">
+                </div>
+            </div>
+            {% endif %}
+        </div>
+
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-4 w-100%">
+            {% if roc %}
+            <div class="card mb-10">
+                <h3 class="text-xl mb-4">ROC Curve</h3>
+
+                <div class="flex justify-center md:w-[500px] md:h-[500px] overflow-x-auto">
+                    <img src="{{roc}}" class="rounded-lg w-full">
+                </div>
+            </div>
+            {% endif %}
+        </div>
+        <!-- BUTTONS -->
+        <div class="grid md:grid-cols-3 gap-6 text-center">
+
+            <a href="/download_model">
+                <button class="btn-blue p-3">Download Model</button>
+            </a>
+
+            <a href="/">
+                <button class="btn-gray p-3">Upload New Dataset</button>
+            </a>
+
+            <a href="/predict">
+                <button class="btn-green p-3">Prediction Test</button>
+            </a>
+
+            <a href="/generate_report">
+                <button class="bg-yellow-700 text-white px-4 py-2 rounded">
+                    👁️ Preview Report
+                </button>
+            </a>
+
+        </div>
+
+        
+    </div>
+    <div class="card mt-10 lg:w-[500px] mx-auto">
+
+            <h3 class="text-xl font-semibold mb-4">📊 Custom Visualization</h3>
+
+            <!-- Graph Type -->
+            <select id="graphType" class="border p-2 rounded w-full mb-3 text-black">
+                <option value="">Select Graph plot</option>
+                <option value="scatter">Scatter Plot</option>
+                <option value="bar">Bar Plot</option>
+                <option value="line">Line Plot</option>
+                <option value="histogram">Histogram</option>
+            </select>
+
+            <!-- X Column -->
+            <select id="xColumn" class="border p-2 rounded w-full mb-3 text-black">
+                <option value="">Select Column 2</option>
+                {% for col in columns %}
+                <option value="{{col}}">{{col}}</option>
+                {% endfor %}
+            </select>
+
+            <!-- Y Column -->
+            <select id="yColumn" class="border p-2 rounded w-full mb-3 text-black">
+                <option value="">Select Column 2</option>
+                {% for col in columns %}
+                <option value="{{col}}">{{col}}</option>
+                {% endfor %}
+            </select>
+
+            <button id="generateBtn" class="bg-indigo-600 text-white px-4 py-2 rounded">
+                Generate Plot
+            </button>
+
+            <!-- Chart Output -->
+            <div id="plotContainer" class="mt-5"></div>
+
+        </div>
+    <!-- FOOTER -->
+    <footer class="mt-16 text-center text-gray-400 border-t border-white/10 py-6">
+        Built by Krish Gupta ⚡ AutoML Platform
+    </footer>
+
+    <!-- 🎨 STYLES -->
+    
+<script>
+document.addEventListener("DOMContentLoaded", function () {
+
+    console.log("JS Loaded ✅");
+
+    const btn = document.getElementById("generateBtn");
+
+    if (!btn) {
+        console.log("Button NOT found ❌");
+        return;
+    }
+
+    btn.addEventListener("click", function () {
+
+        console.log("Button clicked 🚀");
+
+        const graph = document.getElementById("graphType").value;
+        const x = document.getElementById("xColumn").value;
+        let y = document.getElementById("yColumn").value;
+
+        if(graph === "histogram"){
+            y = null;
+        }
+
+        console.log("Sending:", {graph, x, y});
+
+        fetch("/generate_plot", {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json"
+            },
+            body: JSON.stringify({ graph, x, y })
+        })
+        .then(res => {
+            console.log("Status:", res.status);
+            return res.text();
+        })
+        .then(data => {
+            console.log("Response received ✅");
+            const container = document.getElementById("plotContainer");
+            container.innerHTML = data;
+
+            // 🔥 Execute scripts inside returned HTML
+            const scripts = container.getElementsByTagName("script");
+
+            for (let i = 0; i < scripts.length; i++) {
+                eval(scripts[i].innerText);
+            }
+        })
+        .catch(err => {
+            console.error("Error:", err);
+        });
+
+    });
+
+});
+</script>
 </body>
+
 </html>
